@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Book Submission Form</title>
+  </head>
+
+  <body>
+    <h2>Submission Form</h2>
+
+    <form id="bookForm">
+      <label for="bName">Book Name:</label>
+      <input type="text" id="bName" required maxlength="30" /><br />
+
+      <label for="bAuthor">Author Name:</label>
+      <input type="text" id="bAuthor" required /><br />
+
+      <label for="subject">Subject :</label>
+      <input type="text" id="subject" required /><br />
+
+      <label for="pdate">Date of Publishing:</label>
+      <input type="date" id="pdate" required /><br />
+
+      <button type="button" onclick="submitForm()">Submit</button>
+    </form>
+
+    <hr />
+
+    <div id="filteredBooks"></div>
+    <h2>Filter by Subject Code</h2>
+    <form id="filterForm">
+      <label for="filterSubject">Genre</label>
+      <input type="text" id="filterSubject" required />
+      <button type="button" onclick="filterBooks()">Filter</button>
+
+      <script>
+        function displayAllBooks() {
+          const startIndex = (currentPage - 1) * itemsPerPage;
+          const endIndex = startIndex + itemsPerPage;
+
+          fetch("http://localhost:3000/api/books")
+            .then((response) => response.json())
+            .then((data) => {
+              const bookContainer = document.getElementById("bookContainer");
+              const paginationContainer = document.getElementById(
+                "paginationContainer"
+              );
+
+              if (!bookContainer || !paginationContainer) {
+                console.error(
+                  "Elements not found. Check your HTML for missing elements."
+                );
+                return;
+              }
+
+              bookContainer.innerHTML = "";
+
+              if (!data || !data.books || data.books.length === 0) {
+                bookContainer.innerHTML = "No books found in the database.";
+              } else {
+                const paginatedData = data.books;
+                for (let i = 0; i < paginatedData.length; i++) {
+                  const book = paginatedData[i];
+                  const bookInfo = `<p>${book.bName} by ${book.bAuthor} (Subject: ${book.subject}, Date: ${book.pdate})</p>`;
+                  bookContainer.innerHTML += bookInfo;
+                }
+
+                createPaginationLinks(data.totalPages);
+              }
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+        }
+
+        function createPaginationLinks(totalPages) {
+          const paginationContainer = document.getElementById(
+            "paginationContainer"
+          );
+          paginationContainer.innerHTML = "";
+
+          for (let i = 1; i <= totalPages; i++) {
+            const link = document.createElement("a");
+            link.href = "#";
+            link.textContent = i;
+            link.addEventListener("click", (event) => {
+              event.preventDefault();
+              currentPage = i;
+              displayAllBooks();
+            });
+
+            paginationContainer.appendChild(link);
+          }
+        }
+
+        let currentPage = 1;
+        const itemsPerPage = 10;
+        let yourSubject = "Math";
+
+        document.addEventListener("DOMContentLoaded", function () {
+          displayAllBooks(); // Commented out to prevent automatic loading
+        });
+
+        function submitForm() {
+          const formData = {
+            bName: document.getElementById("bName").value,
+            bAuthor: document.getElementById("bAuthor").value,
+            subject: document.getElementById("subject").value,
+            pdate: document.getElementById("pdate").value,
+          };
+
+          fetch("http://localhost:3000/submitForm", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log(data);
+              displayAllBooks();
+              location.reload(true);
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+        }
+
+        function filterBooks() {
+          const filterSubject = document.getElementById("filterSubject").value;
+
+          fetch(`http://localhost:3000/books?subject=${filterSubject}`)
+            .then((response) => response.json())
+            .then((data) => {
+              const filteredBooksDiv = document.getElementById("filteredBooks");
+              filteredBooksDiv.innerHTML = "<h3>Filtered Books:</h3>";
+              if (data.length === 0) {
+                filteredBooksDiv.innerHTML +=
+                  "<p>No books found for the given subject code.</p>";
+              } else {
+                data.forEach((book) => {
+                  filteredBooksDiv.innerHTML += `<p>${book.bName} by ${book.bAuthor} (Subject: ${book.subject})</p>`;
+                });
+              }
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+        }
+      </script>
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          fetch("http://localhost:3000/api/books")
+            .then((response) => response.json())
+            .then((data) => {
+              const bookList = document.getElementById("bookList");
+
+              if (data.length === 0) {
+                bookList.innerHTML = "<li>No books found in the database.</li>";
+              } else {
+                data.forEach((book) => {
+                  const listItem = document.createElement("li");
+                  listItem.textContent = `${book.bName} by ${book.bAuthor} (Subject: ${book.subject}, Date: ${book.pdate})`;
+                  bookList.appendChild(listItem);
+                });
+              }
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+        });
+      </script>
+
+      <!-- <h2>Book Data</h2>
+      <div id="bookContainer"></div>
+
+      <script>
+        console.log(displayAllBooks);
+      </script>
+      <button type="button" onclick="displayAllBooks()">Display</button> -->
+    </form>
+  </body>
+</html>
